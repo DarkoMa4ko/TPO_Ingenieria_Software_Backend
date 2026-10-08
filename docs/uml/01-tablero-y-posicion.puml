@@ -1,0 +1,120 @@
+@startuml 01-tablero-y-posicion
+!include _estilo.iuml
+title Núcleo (1/3): tablero con bitboards y posición inmutable
+
+package "chess.core.board" {
+  class Bitboard {
+    - bits : BigInteger
+    + {static} EMPTY : Bitboard
+    + {static} ofBit(index : int) : Bitboard
+    + {static} filled(count : int) : Bitboard
+    + and(other : Bitboard) : Bitboard
+    + or(other : Bitboard) : Bitboard
+    + xor(other : Bitboard) : Bitboard
+    + andNot(other : Bitboard) : Bitboard
+    + with(index : int) : Bitboard
+    + without(index : int) : Bitboard
+    + shiftLeft(positions : int) : Bitboard
+    + shiftRight(positions : int) : Bitboard
+    + isEmpty() : boolean
+    + has(index : int) : boolean
+    + intersects(other : Bitboard) : boolean
+    + cardinality() : int
+    + lowestBit() : int
+    + highestBit() : int
+    + forEachBit(action : IntConsumer)
+  }
+  class BoardGeometry {
+    - files : int
+    - ranks : int
+    + {static} STANDARD : BoardGeometry
+    + {static} of(files : int, ranks : int) : BoardGeometry
+    + index(square : Square) : int
+    + square(index : int) : Square
+    + bit(square : Square) : Bitboard
+    + all() : Bitboard
+    + complement(board : Bitboard) : Bitboard
+    + squares(board : Bitboard) : List<Square>
+    + shift(board : Bitboard, direction : Direction) : Bitboard
+    + ray(squareIndex : int, direction : Direction) : Bitboard
+    + isIncreasing(direction : Direction) : boolean
+    + between(a : Square, b : Square) : Bitboard
+  }
+  class Square <<record>> {
+    + file : int
+    + rank : int
+    + {static} parse(text : String) : Square
+  }
+  class Direction <<record>> {
+    + fileStep : int
+    + rankStep : int
+    + {static} ORTHOGONAL : List<Direction>
+    + {static} DIAGONAL : List<Direction>
+    + {static} ALL : List<Direction>
+    + {static} KNIGHT_JUMPS : List<Direction>
+    + opposite() : Direction
+    + {static} symmetries(a : int, b : int) : List<Direction>
+  }
+}
+
+package "chess.core.model" {
+  enum Color {
+    WHITE
+    BLACK
+    + opposite() : Color
+    + forward() : int
+  }
+  class Piece <<record>> {
+    + type : PieceType
+    + color : Color
+    + symbol() : char
+  }
+  class PieceType <<record>>
+  interface MovementRule
+  interface Move {
+    + execute(board : Position.Builder)
+  }
+  class Position {
+    - geometry : BoardGeometry
+    - byType : Map<PieceType, Bitboard>
+    - byColor : Map<Color, Bitboard>
+    - sideToMove : Color
+    - unmoved : Bitboard
+    - enPassantTarget : Square
+    + {static} builder(geometry : BoardGeometry) : Position.Builder
+    + toBuilder() : Position.Builder
+    + occupied() : Bitboard
+    + occupiedBy(color : Color) : Bitboard
+    + pieces(color : Color, type : PieceType) : Bitboard
+    + pieceAt(square : Square) : Optional<Piece>
+    + attackedBy(color : Color) : Bitboard
+    + isInCheck(color : Color) : boolean
+    + play(move : Move) : Position
+  }
+  class Position.Builder {
+    + place(square : Square, piece : Piece) : Builder
+    + remove(square : Square) : Builder
+    + relocate(from : Square, to : Square) : Builder
+    + sideToMove(color : Color) : Builder
+    + unmoved(squares : Bitboard) : Builder
+    + enPassantTarget(square : Square) : Builder
+    + build() : Position
+  }
+}
+
+BoardGeometry ..> Bitboard : crea y opera
+BoardGeometry ..> Square
+BoardGeometry ..> Direction
+
+Piece --> PieceType
+Piece --> Color
+Position --> BoardGeometry
+Position --> Bitboard : un bitboard por color\ny por tipo de pieza
+Position --> PieceType
+Position ..> Piece
+Position ..> Move : play(move)
+Position ..> MovementRule : attackedBy()
+Position +-- Position.Builder
+Move ..> Position.Builder : execute()
+
+@enduml

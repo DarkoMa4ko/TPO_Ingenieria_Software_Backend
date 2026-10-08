@@ -1,0 +1,137 @@
+@startuml 03-juego-y-reglas
+!include _estilo.iuml
+title Núcleo (3/3): partida, fin de juego y armado del ajedrez estándar
+
+package "chess.core.model" {
+  class Position
+  class PieceType <<record>>
+  interface Move
+}
+
+package "chess.core.movement" {
+  class CastlingSpec <<record>>
+  class SlidingMovement
+  class LeapingMovement
+  class CompositeMovement
+  class PawnMovement
+  class CastlingMovement
+}
+
+package "chess.core.game" {
+  class Game {
+    - generator : MoveGenerator
+    - endConditions : List<EndCondition>
+    - listeners : List<GameListener>
+    - history : List<Move>
+    - position : Position
+    - legalMoves : List<Move>
+    - result : GameResult
+    + position() : Position
+    + turn() : Color
+    + isInCheck() : boolean
+    + isOver() : boolean
+    + result() : Optional<GameResult>
+    + legalMoves() : List<Move>
+    + legalMovesFrom(from : Square) : List<Move>
+    + history() : List<Move>
+    + addListener(listener : GameListener)
+    + play(move : Move)
+    + play(from : Square, to : Square) : Move
+    + play(from : Square, to : Square, promotionSymbol : char) : Move
+  }
+  interface MoveGenerator {
+    + pseudoLegalMoves(position : Position) : List<Move>
+    + legalMoves(position : Position) : List<Move>
+  }
+  class LegalMoveGenerator
+  interface EndCondition {
+    + evaluate(position : Position, legalMoves : List<Move>) : Optional<GameResult>
+  }
+  class Checkmate
+  class Stalemate
+  interface GameListener {
+    + onMovePlayed(game : Game, move : Move)
+    + onGameOver(game : Game, result : GameResult)
+  }
+  class GameResult <<record>> {
+    + outcome : Outcome
+    + reason : String
+    + {static} win(winner : Color, reason : String) : GameResult
+    + {static} draw(reason : String) : GameResult
+  }
+  enum Outcome {
+    WHITE_WINS
+    BLACK_WINS
+    DRAW
+  }
+  class IllegalMoveException
+  class RuntimeException <<external>>
+}
+
+package "chess.core.standard" {
+  class StandardPieces {
+    + {static} ROOK : PieceType
+    + {static} BISHOP : PieceType
+    + {static} KNIGHT : PieceType
+    + {static} QUEEN : PieceType
+    + {static} KING : PieceType
+    + {static} PAWN : PieceType
+    + {static} CASTLING : List<CastlingSpec>
+    + {static} ALL : List<PieceType>
+  }
+  class Fen {
+    - bySymbol : Map<Character, PieceType>
+    - castling : List<CastlingSpec>
+    + {static} standard() : Fen
+    + parse(text : String) : Position
+    + format(position : Position) : String
+  }
+  class StandardChess {
+    + {static} START_FEN : String
+    + {static} fen() : Fen
+    + {static} initialPosition() : Position
+    + {static} endConditions() : List<EndCondition>
+    + {static} newGame() : Game
+    + {static} newGame(position : Position) : Game
+  }
+}
+
+Game o--> MoveGenerator : inyectado
+Game o--> EndCondition : 1..* inyectadas
+Game o--> GameListener : 0..* observadores
+Game --> Position
+Game ..> GameResult
+Game ..> IllegalMoveException
+Game ..> Move
+
+LegalMoveGenerator ..|> MoveGenerator
+MoveGenerator ..> Position
+MoveGenerator ..> Move
+Checkmate ..|> EndCondition
+Stalemate ..|> EndCondition
+EndCondition ..> GameResult
+EndCondition ..> Position
+GameResult --> Outcome
+GameListener ..> Game
+GameListener ..> GameResult
+IllegalMoveException --|> RuntimeException
+LegalMoveGenerator ..> Position
+
+StandardPieces ..> PieceType
+StandardPieces ..> SlidingMovement
+StandardPieces ..> LeapingMovement
+StandardPieces ..> CompositeMovement
+StandardPieces ..> PawnMovement
+StandardPieces ..> CastlingMovement
+StandardPieces ..> CastlingSpec
+Fen ..> Position
+Fen --> PieceType
+Fen --> CastlingSpec
+Fen ..> StandardPieces
+StandardChess --> Fen
+StandardChess ..> Game : arma
+StandardChess ..> LegalMoveGenerator
+StandardChess ..> Checkmate
+StandardChess ..> Stalemate
+
+@enduml

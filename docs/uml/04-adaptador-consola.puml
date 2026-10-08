@@ -1,0 +1,90 @@
+@startuml 04-adaptador-consola
+!include _estilo.iuml
+title Adaptador de consola (chess-cli): depende del núcleo, nunca al revés
+
+package "chess.core (núcleo)" {
+  class Game
+  interface GameListener
+  class StandardChess
+  class Position
+  class IllegalMoveException
+}
+
+package "chess.cli" {
+  class ConsoleApp {
+    + {static} main(args : String[])
+    ~ {static} createGame(args : String[]) : Game
+  }
+  class ConsoleSession {
+    - game : Game
+    - in : BufferedReader
+    - out : PrintStream
+    - parser : CommandParser
+    - view : ConsoleView
+    + run()
+  }
+  class ConsoleView {
+    - out : PrintStream
+    - renderer : BoardRenderer
+    + show(game : Game)
+    + onMovePlayed(game : Game, move : Move)
+    + onGameOver(game : Game, result : GameResult)
+  }
+  class CommandParser {
+    + parse(line : String) : Command
+  }
+  class BoardRenderer {
+    + render(position : Position) : String
+  }
+  interface Command
+  class Command.PlayMove <<record>> {
+    + from : Square
+    + to : Square
+    + promotion : Optional<Character>
+  }
+  class Command.ListMoves <<record>> {
+    + from : Optional<Square>
+  }
+  class Command.ShowBoard <<record>>
+  class Command.ShowFen <<record>>
+  class Command.Help <<record>>
+  class Command.Quit <<record>>
+  class Command.Empty <<record>>
+  class Command.Unknown <<record>> {
+    + text : String
+    + reason : String
+  }
+}
+
+ConsoleApp ..> ConsoleSession : arma
+ConsoleApp ..> StandardChess : raíz de composición
+ConsoleSession o--> Game
+ConsoleSession o--> CommandParser
+ConsoleSession o--> ConsoleView
+ConsoleSession ..> Command
+ConsoleSession ..> IllegalMoveException
+ConsoleSession ..> StandardChess
+ConsoleView ..|> GameListener : Observer
+ConsoleView --> BoardRenderer
+ConsoleView ..> Game
+CommandParser ..> Command
+BoardRenderer ..> Position
+
+Command +-- Command.PlayMove
+Command +-- Command.ListMoves
+Command +-- Command.ShowBoard
+Command +-- Command.ShowFen
+Command +-- Command.Help
+Command +-- Command.Quit
+Command +-- Command.Empty
+Command +-- Command.Unknown
+Command.PlayMove ..|> Command
+Command.ListMoves ..|> Command
+Command.ShowBoard ..|> Command
+Command.ShowFen ..|> Command
+Command.Help ..|> Command
+Command.Quit ..|> Command
+Command.Empty ..|> Command
+Command.Unknown ..|> Command
+
+@enduml

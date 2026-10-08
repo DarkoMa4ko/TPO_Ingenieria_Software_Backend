@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>ar.edu.uade.ingsoft</groupId>
+        <artifactId>ajedrez-tpo</artifactId>
+        <version>1.0.0</version>
+    </parent>
+
+    <artifactId>chess-cli</artifactId>
+    <name>chess-cli (adaptador de consola)</name>
+
+    <dependencies>
+        <dependency>
+            <groupId>ar.edu.uade.ingsoft</groupId>
+            <artifactId>chess-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <finalName>ajedrez</finalName>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>chess.cli.ConsoleApp</mainClass>
+                        </manifest>
+                        <!-- Permite `java -jar chess-cli/target/ajedrez.jar` tras `mvn package`: el jar del
+                             núcleo está en la carpeta hermana. (Antes se copiaban las dependencias con
+                             maven-dependency-plugin, pero Eclipse/m2e fallaba al ejecutarlo en cada build.) -->
+                        <manifestEntries>
+                            <Class-Path>../../chess-core/target/chess-core-${project.version}.jar</Class-Path>
+                        </manifestEntries>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>

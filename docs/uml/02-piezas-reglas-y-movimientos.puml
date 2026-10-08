@@ -1,0 +1,122 @@
+@startuml 02-piezas-reglas-y-movimientos
+!include _estilo.iuml
+title Núcleo (2/3): piezas por composición de reglas (Strategy + Composite) y movimientos (Command)
+
+package "chess.core.board" {
+  class Bitboard
+  class Square <<record>>
+  class Direction <<record>>
+}
+
+package "chess.core.model" {
+  class PieceType <<record>> {
+    + name : String
+    + symbol : char
+    + movement : MovementRule
+    + royal : boolean
+  }
+  interface MovementRule {
+    + attacks(position : Position, from : Square, color : Color) : Bitboard
+    + generate(position : Position, from : Square, color : Color, out : Consumer<Move>)
+  }
+  interface Move {
+    + from() : Square
+    + to() : Square
+    + execute(board : Position.Builder)
+    + promotion() : Optional<PieceType>
+    + notation() : String
+  }
+  class Position
+  class Position.Builder
+}
+
+package "chess.core.movement" {
+  class SlidingMovement {
+    - directions : List<Direction>
+  }
+  class LeapingMovement {
+    - jumps : List<Direction>
+  }
+  class CompositeMovement {
+    - parts : List<MovementRule>
+  }
+  class PawnMovement {
+    - promotionChoices : List<PieceType>
+  }
+  class CastlingMovement {
+    - rook : PieceType
+    - specs : List<CastlingSpec>
+  }
+  class CastlingSpec <<record>> {
+    + color : Color
+    + kingFrom : Square
+    + kingTo : Square
+    + rookFrom : Square
+    + rookTo : Square
+    + isKingSide() : boolean
+  }
+}
+
+package "chess.core.move" {
+  class StandardMove <<record>> {
+    + from : Square
+    + to : Square
+    + {static} toEach(from : Square, targets : Bitboard, geometry : BoardGeometry, out : Consumer<Move>)
+  }
+  class DoublePushMove <<record>> {
+    + from : Square
+    + to : Square
+    + enPassantTarget : Square
+  }
+  class EnPassantMove <<record>> {
+    + from : Square
+    + to : Square
+    + captured : Square
+  }
+  class PromotionMove <<record>> {
+    + from : Square
+    + to : Square
+    + promoteTo : PieceType
+  }
+  class CastlingMove <<record>> {
+    + from : Square
+    + to : Square
+    + rookFrom : Square
+    + rookTo : Square
+  }
+}
+
+
+PieceType *--> MovementRule : delega su movimiento
+MovementRule ..> Position
+MovementRule ..> Move : genera
+MovementRule ..> Bitboard : attacks()
+Move ..> Position.Builder : execute()
+
+SlidingMovement ..|> MovementRule
+LeapingMovement ..|> MovementRule
+CompositeMovement ..|> MovementRule
+PawnMovement ..|> MovementRule
+CastlingMovement ..|> MovementRule
+CompositeMovement o--> MovementRule : partes
+SlidingMovement --> Direction
+LeapingMovement --> Direction
+PawnMovement --> PieceType : piezas de promoción
+CastlingMovement --> PieceType : torre
+CastlingMovement --> CastlingSpec
+
+note right of PawnMovement
+  Cada regla crea los movimientos que le corresponden:
+  Sliding/Leaping -> StandardMove
+  Pawn -> StandardMove, DoublePushMove, EnPassantMove, PromotionMove
+  Castling -> CastlingMove
+end note
+
+StandardMove ..|> Move
+DoublePushMove ..|> Move
+EnPassantMove ..|> Move
+PromotionMove ..|> Move
+CastlingMove ..|> Move
+PromotionMove --> PieceType
+
+@enduml

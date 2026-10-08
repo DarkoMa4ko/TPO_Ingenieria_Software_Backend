@@ -1,0 +1,19 @@
+' Estilo común de todos los diagramas (se incluye con !include).
+set namespaceSeparator none
+hide empty members
+skinparam shadowing false
+skinparam classAttributeIconSize 0
+skinparam defaultFontName SansSerif
+skinparam defaultFontSize 12
+skinparam roundCorner 8
+skinparam ArrowColor #444444
+skinparam class {
+  BackgroundColor #FFFFFF
+  BorderColor #444444
+  BackgroundColor<<record>> #F4F8FF
+  BackgroundColor<<external>> #EEEEEE
+}
+skinparam package {
+  BorderColor #888888
+  FontStyle bold
+}
