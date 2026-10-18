@@ -17,4 +17,6 @@ public interface PartidaRepository {
     List<DatosJugada> jugadas(long partidaId);
 
     int cantidadJugadas(long partidaId);
+
+
 }

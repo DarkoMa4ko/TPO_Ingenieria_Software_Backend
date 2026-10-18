@@ -1,3 +1,4 @@
+
 package chess.api.web;
 
 import chess.api.application.PartidaNoEncontradaException;

@@ -30,6 +30,9 @@ public class PartidaEntidad {
     @Column(name = "fecha_final")
     private LocalDateTime fechaFin;
 
+    @Column(name = "fen_inicial", nullable = false, length = 1024)
+    private String fenInicial;
+
     @Column(name = "fen", nullable = false, length = 1024)
     private String fen;
 
@@ -103,4 +106,8 @@ public class PartidaEntidad {
     public void setResultado(String resultado) {
         this.resultado = resultado;
     }
+
+    public String getFenInicial() { return fenInicial; }
+
+    public void setFenInicial(String fenInicial) { this.fenInicial = fenInicial;}
 }

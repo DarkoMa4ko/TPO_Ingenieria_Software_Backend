@@ -1,6 +1,7 @@
 @startuml 03-juego-y-reglas
 !include _estilo.iuml
-title Núcleo (3/3): partida, fin de juego y armado del ajedrez estándar
+
+title Núcleo (3/3): partida, contexto, fin de juego y armado del ajedrez estándar
 
 package "chess.core.model" {
   class Position
@@ -18,14 +19,17 @@ package "chess.core.movement" {
 }
 
 package "chess.core.game" {
+
   class Game {
     - generator : MoveGenerator
     - endConditions : List<EndCondition>
     - listeners : List<GameListener>
     - history : List<Move>
+    - positionHistory : List<Position>
     - position : Position
     - legalMoves : List<Move>
     - result : GameResult
+
     + position() : Position
     + turn() : Color
     + isInCheck() : boolean
@@ -34,41 +38,58 @@ package "chess.core.game" {
     + legalMoves() : List<Move>
     + legalMovesFrom(from : Square) : List<Move>
     + history() : List<Move>
+    + positionHistory() : List<Position>
     + addListener(listener : GameListener)
     + play(move : Move)
     + play(from : Square, to : Square) : Move
     + play(from : Square, to : Square, promotionSymbol : char) : Move
   }
+
+  class GameContext <<record>> {
+    + position : Position
+    + legalMoves : List<Move>
+    + positionHistory : List<Position>
+  }
+
   interface MoveGenerator {
     + pseudoLegalMoves(position : Position) : List<Move>
     + legalMoves(position : Position) : List<Move>
   }
+
   class LegalMoveGenerator
+
   interface EndCondition {
-    + evaluate(position : Position, legalMoves : List<Move>) : Optional<GameResult>
+    + evaluate(context : GameContext) : Optional<GameResult>
   }
+
   class Checkmate
   class Stalemate
+  class ThreefoldRepetition
+
   interface GameListener {
     + onMovePlayed(game : Game, move : Move)
     + onGameOver(game : Game, result : GameResult)
   }
+
   class GameResult <<record>> {
     + outcome : Outcome
     + reason : String
     + {static} win(winner : Color, reason : String) : GameResult
     + {static} draw(reason : String) : GameResult
   }
+
   enum Outcome {
     WHITE_WINS
     BLACK_WINS
     DRAW
   }
+
   class IllegalMoveException
   class RuntimeException <<external>>
 }
 
 package "chess.core.standard" {
+
   class StandardPieces {
     + {static} ROOK : PieceType
     + {static} BISHOP : PieceType
@@ -79,6 +100,7 @@ package "chess.core.standard" {
     + {static} CASTLING : List<CastlingSpec>
     + {static} ALL : List<PieceType>
   }
+
   class Fen {
     - bySymbol : Map<Character, PieceType>
     - castling : List<CastlingSpec>
@@ -86,13 +108,16 @@ package "chess.core.standard" {
     + parse(text : String) : Position
     + format(position : Position) : String
   }
+
   class StandardChess {
     + {static} START_FEN : String
     + {static} fen() : Fen
     + {static} initialPosition() : Position
     + {static} endConditions() : List<EndCondition>
     + {static} newGame() : Game
+    + {static} newGame(fen : String) : Game
     + {static} newGame(position : Position) : Game
+    + {static} restoreGame(current : Position, positionHistory : List<Position>) : Game
   }
 }
 
@@ -100,21 +125,34 @@ Game o--> MoveGenerator : inyectado
 Game o--> EndCondition : 1..* inyectadas
 Game o--> GameListener : 0..* observadores
 Game --> Position
+Game ..> GameContext : construye
 Game ..> GameResult
 Game ..> IllegalMoveException
 Game ..> Move
 
+GameContext --> Position
+GameContext --> Move
+
 LegalMoveGenerator ..|> MoveGenerator
 MoveGenerator ..> Position
 MoveGenerator ..> Move
+
 Checkmate ..|> EndCondition
 Stalemate ..|> EndCondition
+ThreefoldRepetition ..|> EndCondition
+
+EndCondition ..> GameContext
 EndCondition ..> GameResult
-EndCondition ..> Position
+
+ThreefoldRepetition ..> Position
+
 GameResult --> Outcome
+
 GameListener ..> Game
 GameListener ..> GameResult
+
 IllegalMoveException --|> RuntimeException
+
 LegalMoveGenerator ..> Position
 
 StandardPieces ..> PieceType
@@ -124,14 +162,17 @@ StandardPieces ..> CompositeMovement
 StandardPieces ..> PawnMovement
 StandardPieces ..> CastlingMovement
 StandardPieces ..> CastlingSpec
+
 Fen ..> Position
 Fen --> PieceType
 Fen --> CastlingSpec
 Fen ..> StandardPieces
+
 StandardChess --> Fen
-StandardChess ..> Game : arma
+StandardChess ..> Game : arma / restaura
 StandardChess ..> LegalMoveGenerator
 StandardChess ..> Checkmate
 StandardChess ..> Stalemate
+StandardChess ..> ThreefoldRepetition
 
 @enduml
