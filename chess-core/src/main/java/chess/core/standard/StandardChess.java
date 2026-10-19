@@ -4,6 +4,7 @@ import chess.core.game.Checkmate;
 import chess.core.game.EndCondition;
 import chess.core.game.Game;
 import chess.core.game.LegalMoveGenerator;
+import chess.core.game.InsufficientMaterial;
 import chess.core.game.Stalemate;
 import chess.core.model.Position;
 
@@ -34,7 +35,7 @@ public final class StandardChess {
     }
 
     public static List<EndCondition> endConditions() {
-        return List.of(new Checkmate(), new Stalemate());
+        return List.of(new Checkmate(), new Stalemate(), new InsufficientMaterial());
     }
 
     /** Partida nueva desde la posición inicial. */
