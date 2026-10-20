@@ -1,5 +1,6 @@
 @startuml 01-tablero-y-posicion
 !include _estilo.iuml
+
 title Núcleo (1/3): tablero con bitboards y posición inmutable
 
 package "chess.core.board" {
@@ -24,6 +25,7 @@ package "chess.core.board" {
     + highestBit() : int
     + forEachBit(action : IntConsumer)
   }
+
   class BoardGeometry {
     - files : int
     - ranks : int
@@ -40,11 +42,13 @@ package "chess.core.board" {
     + isIncreasing(direction : Direction) : boolean
     + between(a : Square, b : Square) : Bitboard
   }
+
   class Square <<record>> {
     + file : int
     + rank : int
     + {static} parse(text : String) : Square
   }
+
   class Direction <<record>> {
     + fileStep : int
     + rankStep : int
@@ -64,16 +68,20 @@ package "chess.core.model" {
     + opposite() : Color
     + forward() : int
   }
+
   class Piece <<record>> {
     + type : PieceType
     + color : Color
     + symbol() : char
   }
+
   class PieceType <<record>>
   interface MovementRule
+
   interface Move {
     + execute(board : Position.Builder)
   }
+
   class Position {
     - geometry : BoardGeometry
     - byType : Map<PieceType, Bitboard>
@@ -81,6 +89,8 @@ package "chess.core.model" {
     - sideToMove : Color
     - unmoved : Bitboard
     - enPassantTarget : Square
+    - halfmoveClock : int
+
     + {static} builder(geometry : BoardGeometry) : Position.Builder
     + toBuilder() : Position.Builder
     + occupied() : Bitboard
@@ -89,8 +99,10 @@ package "chess.core.model" {
     + pieceAt(square : Square) : Optional<Piece>
     + attackedBy(color : Color) : Bitboard
     + isInCheck(color : Color) : boolean
+    + halfmoveClock() : int
     + play(move : Move) : Position
   }
+
   class Position.Builder {
     + place(square : Square, piece : Piece) : Builder
     + remove(square : Square) : Builder
@@ -98,8 +110,13 @@ package "chess.core.model" {
     + sideToMove(color : Color) : Builder
     + unmoved(squares : Bitboard) : Builder
     + enPassantTarget(square : Square) : Builder
+    + halfmoveClock(value : int) : Builder
     + build() : Position
   }
+}
+
+package "chess.core.movement" {
+  class PawnMovement
 }
 
 BoardGeometry ..> Bitboard : crea y opera
@@ -108,13 +125,16 @@ BoardGeometry ..> Direction
 
 Piece --> PieceType
 Piece --> Color
+
 Position --> BoardGeometry
 Position --> Bitboard : un bitboard por color\ny por tipo de pieza
 Position --> PieceType
 Position ..> Piece
 Position ..> Move : play(move)
 Position ..> MovementRule : attackedBy()
+Position ..> PawnMovement : detecta movimiento de peón
 Position +-- Position.Builder
+
 Move ..> Position.Builder : execute()
 
 @enduml

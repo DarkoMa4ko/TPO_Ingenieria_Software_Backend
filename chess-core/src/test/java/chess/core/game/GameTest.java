@@ -476,6 +476,45 @@ class GameTest {
         );
     }
 
+    @Test
+    @DisplayName("Regla de 50 movimientos: el medio movimiento 100 termina en tablas")
+    void gameEndsInDrawWhenHalfmoveClockReachesOneHundred() {
+        // Arrange
+        Game game = StandardChess.newGame(
+                "4k3/8/8/8/8/8/5N2/4K3 w - - 99 1"
+        );
+
+        assertFalse(game.isOver());
+        assertEquals(
+                99,
+                game.position().halfmoveClock()
+        );
+
+        // Act
+        play(game, "f2g4");
+
+        // Assert
+        assertEquals(
+                100,
+                game.position().halfmoveClock()
+        );
+
+        assertTrue(game.isOver());
+
+        GameResult result =
+                game.result().orElseThrow();
+
+        assertEquals(
+                Outcome.DRAW,
+                result.outcome()
+        );
+
+        assertEquals(
+                "Regla de los 50 movimientos",
+                result.reason()
+        );
+    }
+
     // ---- promoción -------------------------------------------------------------------------
 
     @Test

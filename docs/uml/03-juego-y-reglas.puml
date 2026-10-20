@@ -65,6 +65,7 @@ package "chess.core.game" {
   class Checkmate
   class Stalemate
   class ThreefoldRepetition
+  class FiftyMoveRule
 
   interface GameListener {
     + onMovePlayed(game : Game, move : Move)
@@ -140,11 +141,13 @@ MoveGenerator ..> Move
 Checkmate ..|> EndCondition
 Stalemate ..|> EndCondition
 ThreefoldRepetition ..|> EndCondition
+FiftyMoveRule ..|> EndCondition
 
 EndCondition ..> GameContext
 EndCondition ..> GameResult
 
 ThreefoldRepetition ..> Position
+FiftyMoveRule ..> Position
 
 GameResult --> Outcome
 
@@ -174,5 +177,6 @@ StandardChess ..> LegalMoveGenerator
 StandardChess ..> Checkmate
 StandardChess ..> Stalemate
 StandardChess ..> ThreefoldRepetition
+StandardChess ..> FiftyMoveRule
 
 @enduml

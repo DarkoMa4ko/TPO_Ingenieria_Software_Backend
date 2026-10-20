@@ -7,6 +7,7 @@ import chess.core.game.LegalMoveGenerator;
 import chess.core.game.Stalemate;
 import chess.core.game.ThreefoldRepetition;
 import chess.core.model.Position;
+import chess.core.game.FiftyMoveRule;
 
 import java.util.List;
 
@@ -54,7 +55,8 @@ public final class StandardChess {
         return List.of(
                 new Checkmate(),
                 new Stalemate(),
-                new ThreefoldRepetition()
+                new ThreefoldRepetition(),
+                new FiftyMoveRule()
         );
     }
 

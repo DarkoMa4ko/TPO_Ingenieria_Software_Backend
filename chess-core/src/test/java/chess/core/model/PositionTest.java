@@ -6,6 +6,10 @@ import chess.core.board.Square;
 import chess.core.move.StandardMove;
 import chess.core.standard.StandardChess;
 import chess.core.standard.StandardPieces;
+import chess.core.move.CastlingMove;
+import chess.core.move.DoublePushMove;
+import chess.core.move.EnPassantMove;
+import chess.core.move.PromotionMove;
 import org.junit.jupiter.api.Test;
 
 import java.util.Optional;
@@ -110,5 +114,289 @@ class PositionTest {
         assertTrue(p.pieceTypes().contains(StandardPieces.ROOK));
         assertTrue(p.pieceTypes().contains(StandardPieces.KING));
         assertEquals(Bitboard.EMPTY, p.pieces(StandardPieces.QUEEN));
+    }
+
+    @Test
+    void halfmoveClockDefaultsToZero() {
+        // Arrange / Act
+        Position position = Position.builder(BoardGeometry.STANDARD)
+                .build();
+
+        // Assert
+        assertEquals(0, position.halfmoveClock());
+    }
+
+    @Test
+    void builderCanSetHalfmoveClock() {
+        // Arrange / Act
+        Position position = Position.builder(BoardGeometry.STANDARD)
+                .halfmoveClock(37)
+                .build();
+
+        // Assert
+        assertEquals(37, position.halfmoveClock());
+    }
+
+    @Test
+    void toBuilderPreservesHalfmoveClock() {
+        // Arrange
+        Position original = Position.builder(BoardGeometry.STANDARD)
+                .halfmoveClock(42)
+                .build();
+
+        // Act
+        Position copy = original.toBuilder().build();
+
+        // Assert
+        assertEquals(42, copy.halfmoveClock());
+    }
+
+    @Test
+    void negativeHalfmoveClockIsRejected() {
+        // Act / Assert
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> Position.builder(BoardGeometry.STANDARD)
+                        .halfmoveClock(-1)
+        );
+    }
+
+    @Test
+    void normalMoveIncrementsHalfmoveClock() {
+        // Arrange
+        Position position = StandardChess.fen().parse(
+                "4k3/8/8/8/8/8/5N2/4K3 w - - 17 1"
+        );
+
+        // Act
+        Position next = position.play(
+                new StandardMove(
+                        sq("f2"),
+                        sq("g4")
+                )
+        );
+
+        // Assert
+        assertEquals(
+                18,
+                next.halfmoveClock()
+        );
+    }
+
+    @Test
+    void pawnMoveResetsHalfmoveClock() {
+        // Arrange
+        Position position = StandardChess.fen().parse(
+                "4k3/8/8/8/8/8/4P3/4K3 w - - 63 1"
+        );
+
+        // Act
+        Position next = position.play(
+                new StandardMove(
+                        sq("e2"),
+                        sq("e3")
+                )
+        );
+
+        // Assert
+        assertEquals(
+                0,
+                next.halfmoveClock()
+        );
+    }
+
+    @Test
+    void captureResetsHalfmoveClock() {
+        // Arrange
+        Position position = StandardChess.fen().parse(
+                "4k3/8/8/8/8/8/5Nr1/4K3 w - - 42 1"
+        );
+
+        // Act
+        Position next = position.play(
+                new StandardMove(
+                        sq("f2"),
+                        sq("g2")
+                )
+        );
+
+        // Assert
+        assertEquals(
+                0,
+                next.halfmoveClock()
+        );
+    }
+
+    @Test
+    void doublePawnPushResetsHalfmoveClock() {
+        // Arrange
+        Position position = StandardChess.fen().parse(
+                "4k3/8/8/8/8/8/4P3/4K3 w - - 35 1"
+        );
+
+        // Act
+        Position next = position.play(
+                new DoublePushMove(
+                        sq("e2"),
+                        sq("e4"),
+                        sq("e3")
+                )
+        );
+
+        // Assert
+        assertEquals(
+                0,
+                next.halfmoveClock()
+        );
+
+        assertEquals(
+                Optional.of(sq("e3")),
+                next.enPassantTarget()
+        );
+    }
+
+    @Test
+    void promotionResetsHalfmoveClock() {
+        // Arrange
+        Position position = StandardChess.fen().parse(
+                "4k3/P7/8/8/8/8/8/4K3 w - - 71 1"
+        );
+
+        // Act
+        Position next = position.play(
+                new PromotionMove(
+                        sq("a7"),
+                        sq("a8"),
+                        StandardPieces.QUEEN
+                )
+        );
+
+        // Assert
+        assertEquals(
+                0,
+                next.halfmoveClock()
+        );
+
+        assertEquals(
+                Optional.of(
+                        new Piece(
+                                StandardPieces.QUEEN,
+                                Color.WHITE
+                        )
+                ),
+                next.pieceAt(sq("a8"))
+        );
+    }
+
+    @Test
+    void enPassantResetsHalfmoveClock() {
+        // Arrange
+        Position position = StandardChess.fen().parse(
+                "4k3/8/8/3pP3/8/8/8/4K3 w - d6 28 1"
+        );
+
+        // Act
+        Position next = position.play(
+                new EnPassantMove(
+                        sq("e5"),
+                        sq("d6"),
+                        sq("d5")
+                )
+        );
+
+        // Assert
+        assertEquals(
+                0,
+                next.halfmoveClock()
+        );
+
+        assertEquals(
+                Optional.empty(),
+                next.pieceAt(sq("d5"))
+        );
+
+        assertEquals(
+                Optional.of(
+                        new Piece(
+                                StandardPieces.PAWN,
+                                Color.WHITE
+                        )
+                ),
+                next.pieceAt(sq("d6"))
+        );
+    }
+
+    @Test
+    void castlingIncrementsHalfmoveClock() {
+        // Arrange
+        Position position = StandardChess.fen().parse(
+                "4k3/8/8/8/8/8/8/4K2R w K - 23 1"
+        );
+
+        // Act
+        Position next = position.play(
+                new CastlingMove(
+                        sq("e1"),
+                        sq("g1"),
+                        sq("h1"),
+                        sq("f1")
+                )
+        );
+
+        // Assert
+        assertEquals(
+                24,
+                next.halfmoveClock()
+        );
+
+        assertEquals(
+                Optional.of(
+                        new Piece(
+                                StandardPieces.KING,
+                                Color.WHITE
+                        )
+                ),
+                next.pieceAt(sq("g1"))
+        );
+
+        assertEquals(
+                Optional.of(
+                        new Piece(
+                                StandardPieces.ROOK,
+                                Color.WHITE
+                        )
+                ),
+                next.pieceAt(sq("f1"))
+        );
+    }
+
+    @Test
+    void formattingAfterNormalMoveWritesIncrementedHalfmoveClock() {
+        // Arrange
+        Position position = StandardChess.fen().parse(
+                "4k3/8/8/8/8/8/5N2/4K3 w - - 17 1"
+        );
+
+        // Act
+        Position next = position.play(
+                new StandardMove(
+                        sq("f2"),
+                        sq("g4")
+                )
+        );
+
+        String formatted =
+                StandardChess.fen().format(next);
+
+        // Assert
+        assertEquals(
+                18,
+                next.halfmoveClock()
+        );
+
+        assertEquals(
+                "4k3/8/8/8/6N1/8/8/4K3 b - - 18 1",
+                formatted
+        );
     }
 }
