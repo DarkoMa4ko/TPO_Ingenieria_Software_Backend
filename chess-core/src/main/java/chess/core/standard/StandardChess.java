@@ -4,6 +4,7 @@ import chess.core.game.Checkmate;
 import chess.core.game.EndCondition;
 import chess.core.game.Game;
 import chess.core.game.LegalMoveGenerator;
+import chess.core.game.InsufficientMaterial;
 import chess.core.game.Stalemate;
 import chess.core.game.ThreefoldRepetition;
 import chess.core.model.Position;
@@ -16,7 +17,8 @@ import java.util.List;
  * condiciones de fin de partida, y las inyecta en un {@link Game}.
  *
  * <p>Las reglas de finalización del ajedrez estándar se configuran en este punto.
- * Actualmente se contemplan jaque mate, rey ahogado y tablas por triple repetición.
+ * Actualmente se contemplan jaque mate, rey ahogado, material insuficiente,
+ * tablas por triple repetición y la regla de los cincuenta movimientos.
  * {@code Game} no necesita conocer las implementaciones concretas: únicamente recibe
  * una lista de {@link EndCondition} y las evalúa durante la partida.
  *
@@ -55,6 +57,7 @@ public final class StandardChess {
         return List.of(
                 new Checkmate(),
                 new Stalemate(),
+                new InsufficientMaterial(),
                 new ThreefoldRepetition(),
                 new FiftyMoveRule()
         );
