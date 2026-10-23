@@ -1,0 +1,14 @@
+# Maven
+target/
+**/target/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+
+# macOS
+.DS_Store
+**/.DS_Store
+
+# Backups locales
+*.rar

@@ -3,20 +3,25 @@ package chess.core.game;
 import java.util.Optional;
 
 /**
- * Condición de fin de partida que aplica la regla de los cincuenta movimientos.
+ * Condición de tablas por la regla de los cincuenta movimientos.
  *
- * <p>La partida termina en tablas cuando se producen cien medios movimientos
- * consecutivos (cincuenta jugadas de cada bando) sin mover peones ni capturar:
- * el reloj de medio movimientos de la posición alcanza 100.
+ * <p>La condición se alcanza después de cien medios movimientos
+ * consecutivos sin movimiento de peón ni captura.
  */
 public final class FiftyMoveRule implements EndCondition {
 
+    private static final int HALF_MOVES_LIMIT = 100;
+
     @Override
     public Optional<GameResult> evaluate(GameContext context) {
-        if (context.position().halfmoveClock() >= 100) {
-            return Optional.of(GameResult.draw("Regla de los 50 movimientos"));
+        if (context.position().halfmoveClock() < HALF_MOVES_LIMIT) {
+            return Optional.empty();
         }
 
-        return Optional.empty();
+        return Optional.of(
+                GameResult.draw(
+                        "Regla de los 50 movimientos"
+                )
+        );
     }
 }
