@@ -64,6 +64,7 @@ package "chess.core.game" {
 
   class Checkmate
   class Stalemate
+  class InsufficientMaterial
   class ThreefoldRepetition
   class FiftyMoveRule
 
@@ -140,6 +141,7 @@ MoveGenerator ..> Move
 
 Checkmate ..|> EndCondition
 Stalemate ..|> EndCondition
+InsufficientMaterial ..|> EndCondition
 ThreefoldRepetition ..|> EndCondition
 FiftyMoveRule ..|> EndCondition
 
