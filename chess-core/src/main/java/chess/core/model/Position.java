@@ -17,8 +17,8 @@ import java.util.Set;
  * Estado completo e <b>inmutable</b> de una partida en un instante:
  * dónde está cada pieza, a quién le toca, qué piezas nunca se movieron
  * (base del derecho a enrocar), si hay una casilla de captura al paso
- * disponible y cuántos medios movimientos transcurrieron desde la
- * última captura o movimiento de peón.
+ * disponible, cuántos medios movimientos transcurrieron desde la última
+ * captura o movimiento de peón y cuál es el número completo de jugada.
  *
  * <p>Las piezas se guardan como bitboards: uno por color y uno por tipo
  * de pieza. Para saber qué hay en una casilla se cruzan (AND) esos conjuntos.
@@ -42,16 +42,18 @@ public final class Position {
     /**
      * Cantidad de medios movimientos transcurridos desde la última
      * captura o movimiento de peón.
-     *
-     * <p>Cada movimiento de uno de los jugadores cuenta como un medio
-     * movimiento. Este valor se utilizará para evaluar la regla de los
-     * cincuenta movimientos.
      */
     private final int halfmoveClock;
 
+    /**
+     * Número completo de jugada del FEN.
+     *
+     * <p>Comienza en 1 y aumenta después de cada movimiento de negras.
+     */
+    private final int fullmoveNumber;
+
     // Caché perezosa del mapa de ataques de cada bando.
     // La posición es inmutable, así que nunca se invalida.
-    // Si dos hilos la calculan a la vez obtienen el mismo valor.
     private volatile Bitboard attackedByWhite;
     private volatile Bitboard attackedByBlack;
 
@@ -101,6 +103,9 @@ public final class Position {
 
         this.halfmoveClock =
                 builder.halfmoveClock;
+
+        this.fullmoveNumber =
+                builder.fullmoveNumber;
     }
 
     /**
@@ -227,6 +232,16 @@ public final class Position {
         return halfmoveClock;
     }
 
+    /**
+     * Devuelve el número completo de jugada del FEN.
+     *
+     * <p>El valor comienza en uno y aumenta después de cada
+     * movimiento de negras.
+     */
+    public int fullmoveNumber() {
+        return fullmoveNumber;
+    }
+
     // ---- ataques y jaque -----------------------------------------------------------------
 
     /**
@@ -314,6 +329,9 @@ public final class Position {
      * <p>El contador de medios movimientos aumenta con cada movimiento
      * que no sea realizado por un peón y que no produzca una captura.
      * Un movimiento de peón o una captura reinician el contador a cero.
+     *
+     * <p>El número completo de jugada aumenta después de cada movimiento
+     * realizado por las negras.
      */
     public Position play(Move move) {
         Piece movingPiece = pieceAt(move.from())
@@ -324,22 +342,19 @@ public final class Position {
                 );
 
         /*
-         * Se identifica al peón por su estrategia de movimiento,
-         * no por una pieza concreta de StandardPieces.
-         *
-         * De este modo, Position continúa siendo independiente
-         * de la configuración concreta del ajedrez estándar.
+         * Identificamos al peón por su estrategia de movimiento,
+         * manteniendo Position independiente de StandardPieces.
          */
         boolean pawnMove =
                 movingPiece.type().movement()
                         instanceof PawnMovement;
 
         /*
-         * En una captura común, la pieza capturada ocupa la casilla
-         * de destino antes de ejecutar el movimiento.
+         * Una captura común tiene una pieza en la casilla de destino
+         * antes de ejecutar el movimiento.
          *
-         * La captura al paso tiene el destino vacío, pero igualmente
-         * reinicia el contador porque siempre es un movimiento de peón.
+         * En passant también reinicia el halfmoveClock porque siempre
+         * es realizado por un peón.
          */
         boolean capture =
                 pieceAt(move.to()).isPresent();
@@ -360,6 +375,16 @@ public final class Position {
             );
         }
 
+        /*
+         * El contador completo del FEN aumenta después de la jugada
+         * de negras, antes de cambiar el turno a blancas.
+         */
+        if (sideToMove == Color.BLACK) {
+            builder.fullmoveNumber(
+                    fullmoveNumber + 1
+            );
+        }
+
         builder.sideToMove(
                 sideToMove.opposite()
         );
@@ -370,13 +395,12 @@ public final class Position {
     // ---- igualdad ------------------------------------------------------------------------
 
     /**
-     * Compara la identidad ajedrecística utilizada actualmente para
-     * determinar si dos posiciones son equivalentes.
+     * Compara la identidad ajedrecística utilizada para determinar
+     * si dos posiciones son equivalentes.
      *
-     * <p>El contador de medios movimientos no forma parte de esta igualdad.
-     * De este modo, una misma disposición de piezas alcanzada con contadores
-     * diferentes puede seguir contando como la misma posición para la regla
-     * de triple repetición.
+     * <p>Los contadores halfmoveClock y fullmoveNumber no forman parte
+     * de esta igualdad. La igualdad representa la posición relevante
+     * para reglas como triple repetición.
      */
     @Override
     public boolean equals(Object object) {
@@ -435,10 +459,14 @@ public final class Position {
         private Square enPassantTarget;
 
         /**
-         * Un builder nuevo representa una posición que todavía no tiene
-         * medios movimientos acumulados.
+         * Un builder nuevo comienza sin medios movimientos acumulados.
          */
         private int halfmoveClock;
+
+        /**
+         * El contador de jugada completa del FEN comienza en uno.
+         */
+        private int fullmoveNumber = 1;
 
         private Builder(BoardGeometry geometry) {
             this.geometry =
@@ -481,6 +509,9 @@ public final class Position {
 
             this.halfmoveClock =
                     source.halfmoveClock;
+
+            this.fullmoveNumber =
+                    source.fullmoveNumber;
         }
 
         public BoardGeometry geometry() {
@@ -592,10 +623,9 @@ public final class Position {
         ) {
             Piece piece = pieceAt(from)
                     .orElseThrow(
-                            () ->
-                                    new IllegalStateException(
-                                            "No hay pieza en " + from
-                                    )
+                            () -> new IllegalStateException(
+                                    "No hay pieza en " + from
+                            )
                     );
 
             remove(from);
@@ -629,8 +659,8 @@ public final class Position {
         }
 
         /**
-         * Define la casilla de captura al paso disponible para el próximo
-         * turno, o {@code null} si no existe.
+         * Define la casilla de captura al paso disponible para el
+         * próximo turno, o {@code null} si no existe.
          */
         public Builder enPassantTarget(Square square) {
             this.enPassantTarget =
@@ -642,8 +672,6 @@ public final class Position {
         /**
          * Define la cantidad de medios movimientos transcurridos desde
          * la última captura o movimiento de peón.
-         *
-         * @throws IllegalArgumentException si el valor es negativo
          */
         public Builder halfmoveClock(int halfmoveClock) {
             if (halfmoveClock < 0) {
@@ -654,6 +682,24 @@ public final class Position {
 
             this.halfmoveClock =
                     halfmoveClock;
+
+            return this;
+        }
+
+        /**
+         * Define el número completo de jugada del FEN.
+         *
+         * @throws IllegalArgumentException si el valor es menor que uno
+         */
+        public Builder fullmoveNumber(int fullmoveNumber) {
+            if (fullmoveNumber < 1) {
+                throw new IllegalArgumentException(
+                        "El número completo de jugada debe ser mayor o igual que 1"
+                );
+            }
+
+            this.fullmoveNumber =
+                    fullmoveNumber;
 
             return this;
         }

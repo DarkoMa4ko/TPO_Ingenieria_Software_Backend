@@ -84,6 +84,10 @@ public final class StandardChess {
      * de finalización que utilizará {@link Game}.
      */
     public static Game newGame(Position position) {
+        StandardPositionValidator.validate(
+                position
+        );
+
         return new Game(
                 position,
                 new LegalMoveGenerator(),

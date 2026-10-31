@@ -24,7 +24,7 @@ class SquareTest {
 
     @Test
     void rejectsMalformedText() {
-        for (String bad : new String[] {"", "e", "44", "e0", "e-1", "ee", "é4", "e4x"}) {
+        for (String bad : new String[] {"", "e", "44", "e0", "e-1", "ee", "é4", "e4x", "e4+"}) {
             assertThrows(IllegalArgumentException.class, () -> Square.parse(bad), "debería rechazar '" + bad + "'");
         }
         assertThrows(IllegalArgumentException.class, () -> Square.parse(null));
