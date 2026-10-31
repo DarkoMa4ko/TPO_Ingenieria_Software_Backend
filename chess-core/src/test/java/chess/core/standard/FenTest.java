@@ -15,7 +15,8 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class FenTest {
 
-    private final Fen fen = Fen.standard();
+    private final Fen fen =
+            Fen.standard();
 
     // ---- round-trip -----------------------------------------------------------------------
 
@@ -24,7 +25,9 @@ class FenTest {
         assertEquals(
                 StandardChess.START_FEN,
                 fen.format(
-                        fen.parse(StandardChess.START_FEN)
+                        fen.parse(
+                                StandardChess.START_FEN
+                        )
                 )
         );
     }
@@ -40,18 +43,34 @@ class FenTest {
         )) {
             assertEquals(
                     text,
-                    fen.format(fen.parse(text))
+                    fen.format(
+                            fen.parse(text)
+                    )
             );
         }
     }
 
-    // ---- lectura básica -------------------------------------------------------------------
+    @Test
+    void roundTripPreservesNonDefaultCounters() {
+        String text =
+                "4k3/8/8/8/8/8/8/4K3 w - - 42 19";
+
+        assertEquals(
+                text,
+                fen.format(
+                        fen.parse(text)
+                )
+        );
+    }
+
+    // ---- lectura básica ------------------------------------------------------------------
 
     @Test
     void parsesPiecesAndSideToMove() {
-        Position position = fen.parse(
-                "4k3/8/8/8/8/8/8/R3K3 b - - 0 1"
-        );
+        Position position =
+                fen.parse(
+                        "4k3/8/8/8/8/8/8/R3K3 b - - 0 1"
+                );
 
         assertEquals(
                 Color.BLACK,
@@ -65,7 +84,9 @@ class FenTest {
                                 Color.WHITE
                         )
                 ),
-                position.pieceAt(sq("a1"))
+                position.pieceAt(
+                        sq("a1")
+                )
         );
 
         assertEquals(
@@ -75,7 +96,9 @@ class FenTest {
                                 Color.BLACK
                         )
                 ),
-                position.pieceAt(sq("e8"))
+                position.pieceAt(
+                        sq("e8")
+                )
         );
 
         assertEquals(
@@ -96,14 +119,14 @@ class FenTest {
 
         assertEquals(
                 "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
-                fen.format(game.position())
+                fen.format(
+                        game.position()
+                )
         );
     }
 
     @Test
     void castlingRightsAreDroppedWhenTheRookIsMissing() {
-        // El FEN indica "KQ", pero solo existe la torre de h1.
-        // Por lo tanto, únicamente puede conservarse el derecho de enroque corto.
         assertEquals(
                 "4k3/8/8/8/8/8/8/4K2R w K - 0 1",
                 fen.format(
@@ -115,42 +138,21 @@ class FenTest {
     }
 
     @Test
-    void missingTrailingFieldsUseDefaults() {
-        Position position =
-                fen.parse("8/8/8/8/8/8/8/8");
-
-        assertEquals(
-                Color.WHITE,
-                position.sideToMove()
-        );
-
-        assertEquals(
-                0,
-                position.occupied().cardinality()
-        );
-
-        // Si el quinto campo del FEN no está presente,
-        // el contador de medios movimientos comienza en cero.
-        assertEquals(
-                0,
-                position.halfmoveClock()
-        );
-    }
-
-    @Test
     void sizeOfTheBoardIsDeducedFromTheText() {
-        Position wide = fen.parse(
-                "10/10/10/10/10/10/10/10 w - - 0 1"
-        );
+        Position wide =
+                fen.parse(
+                        "10/10/10/10/10/10/10/10 w - - 0 1"
+                );
 
         assertEquals(
                 BoardGeometry.of(10, 8),
                 wide.geometry()
         );
 
-        Position small = fen.parse(
-                "6/6/6/6/6/6 w - - 0 1"
-        );
+        Position small =
+                fen.parse(
+                        "6/6/6/6/6/6 w - - 0 1"
+                );
 
         assertEquals(
                 BoardGeometry.of(6, 6),
@@ -158,19 +160,47 @@ class FenTest {
         );
     }
 
-    // ---- contador de medios movimientos ----------------------------------------------------
+    // ---- cantidad de campos ---------------------------------------------------------------
+
+    @Test
+    void rejectsFenWithMissingFields() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "4k3/8/8/8/8/8/8/4K3 w - - 0"
+                )
+        );
+    }
+
+    @Test
+    void rejectsFenWithOnlyBoardField() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "8/8/8/8/8/8/8/8"
+                )
+        );
+    }
+
+    @Test
+    void rejectsFenWithExtraFields() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "4k3/8/8/8/8/8/8/4K3 w - - 0 1 palabra_extra"
+                )
+        );
+    }
+
+    // ---- contador de medios movimientos ---------------------------------------------------
 
     @Test
     void parseReadsHalfmoveClock() {
-        // Arrange
-        String text =
-                "4k3/8/8/8/8/8/8/4K3 w - - 37 20";
-
-        // Act
         Position position =
-                fen.parse(text);
+                fen.parse(
+                        "4k3/8/8/8/8/8/8/4K3 w - - 37 20"
+                );
 
-        // Assert
         assertEquals(
                 37,
                 position.halfmoveClock()
@@ -178,37 +208,15 @@ class FenTest {
     }
 
     @Test
-    void parseDefaultsHalfmoveClockToZeroWhenMissing() {
-        // Arrange
-        String text =
-                "4k3/8/8/8/8/8/8/4K3 w - -";
-
-        // Act
-        Position position =
-                fen.parse(text);
-
-        // Assert
-        assertEquals(
-                0,
-                position.halfmoveClock()
-        );
-    }
-
-    @Test
     void formatWritesHalfmoveClock() {
-        // Arrange
-        Position position = fen.parse(
-                "4k3/8/8/8/8/8/8/4K3 w - - 42 9"
-        );
+        Position position =
+                fen.parse(
+                        "4k3/8/8/8/8/8/8/4K3 w - - 42 9"
+                );
 
-        // Act
-        String formatted =
-                fen.format(position);
-
-        // Assert
         assertEquals(
-                "4k3/8/8/8/8/8/8/4K3 w - - 42 1",
-                formatted
+                "4k3/8/8/8/8/8/8/4K3 w - - 42 9",
+                fen.format(position)
         );
     }
 
@@ -232,6 +240,156 @@ class FenTest {
         );
     }
 
+    // ---- número completo de jugada --------------------------------------------------------
+
+    @Test
+    void parseReadsFullmoveNumber() {
+        Position position =
+                fen.parse(
+                        "4k3/8/8/8/8/8/8/4K3 w - - 37 23"
+                );
+
+        assertEquals(
+                23,
+                position.fullmoveNumber()
+        );
+    }
+
+    @Test
+    void formatWritesFullmoveNumber() {
+        Position position =
+                fen.parse(
+                        "4k3/8/8/8/8/8/8/4K3 w - - 42 19"
+                );
+
+        assertEquals(
+                "4k3/8/8/8/8/8/8/4K3 w - - 42 19",
+                fen.format(position)
+        );
+    }
+
+    @Test
+    void parseRejectsZeroFullmoveNumber() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "4k3/8/8/8/8/8/8/4K3 w - - 0 0"
+                )
+        );
+    }
+
+    @Test
+    void parseRejectsNegativeFullmoveNumber() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "4k3/8/8/8/8/8/8/4K3 w - - 0 -1"
+                )
+        );
+    }
+
+    @Test
+    void parseRejectsNonNumericFullmoveNumber() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "4k3/8/8/8/8/8/8/4K3 w - - 0 abc"
+                )
+        );
+    }
+
+    // ---- coherencia de captura al paso ----------------------------------------------------
+
+    @Test
+    void acceptsWhiteDoublePushEnPassantTarget() {
+        Position position =
+                fen.parse(
+                        "4k3/8/8/8/4P3/8/8/4K3 b - e3 0 1"
+                );
+
+        assertEquals(
+                Optional.of(
+                        sq("e3")
+                ),
+                position.enPassantTarget()
+        );
+    }
+
+    @Test
+    void acceptsBlackDoublePushEnPassantTarget() {
+        Position position =
+                fen.parse(
+                        "4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 1"
+                );
+
+        assertEquals(
+                Optional.of(
+                        sq("d6")
+                ),
+                position.enPassantTarget()
+        );
+    }
+
+    @Test
+    void rejectsEnPassantTargetWithoutTheMovedPawn() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "4k3/8/8/4P3/8/8/8/4K3 w - d6 0 1"
+                )
+        );
+    }
+
+    @Test
+    void rejectsEnPassantTargetWithWrongPieceBehindIt() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "4k3/8/8/3rP3/8/8/8/4K3 w - d6 0 1"
+                )
+        );
+    }
+
+    @Test
+    void rejectsEnPassantTargetWithFriendlyPawnBehindIt() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "4k3/8/8/3PP3/8/8/8/4K3 w - d6 0 1"
+                )
+        );
+    }
+
+    @Test
+    void rejectsOccupiedEnPassantTarget() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "4k3/8/3N4/3pP3/8/8/8/4K3 w - d6 0 1"
+                )
+        );
+    }
+
+    @Test
+    void rejectsEnPassantTargetOnWrongRankForWhite() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "4k3/8/8/8/3p4/8/8/4K3 w - d5 0 1"
+                )
+        );
+    }
+
+    @Test
+    void rejectsEnPassantTargetOnWrongRankForBlack() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> fen.parse(
+                        "4k3/8/8/3p4/8/4P3/8/4K3 b - e4 0 1"
+                )
+        );
+    }
+
     // ---- entradas inválidas ---------------------------------------------------------------
 
     @Test
@@ -251,7 +409,6 @@ class FenTest {
                 () -> fen.parse(null)
         );
 
-        // Pieza desconocida.
         assertThrows(
                 IllegalArgumentException.class,
                 () -> fen.parse(
@@ -259,7 +416,6 @@ class FenTest {
                 )
         );
 
-        // Fila demasiado corta.
         assertThrows(
                 IllegalArgumentException.class,
                 () -> fen.parse(
@@ -267,7 +423,6 @@ class FenTest {
                 )
         );
 
-        // Fila demasiado larga.
         assertThrows(
                 IllegalArgumentException.class,
                 () -> fen.parse(
@@ -275,7 +430,6 @@ class FenTest {
                 )
         );
 
-        // Turno inválido.
         assertThrows(
                 IllegalArgumentException.class,
                 () -> fen.parse(
@@ -283,7 +437,6 @@ class FenTest {
                 )
         );
 
-        // Derechos de enroque inválidos.
         assertThrows(
                 IllegalArgumentException.class,
                 () -> fen.parse(
@@ -291,7 +444,6 @@ class FenTest {
                 )
         );
 
-        // Casilla de captura al paso inválida.
         assertThrows(
                 IllegalArgumentException.class,
                 () -> fen.parse(
@@ -302,10 +454,11 @@ class FenTest {
 
     @Test
     void aVariantWithoutCastlingRejectsCastlingRights() {
-        Fen noCastling = new Fen(
-                StandardPieces.ALL,
-                List.of()
-        );
+        Fen noCastling =
+                new Fen(
+                        StandardPieces.ALL,
+                        List.of()
+                );
 
         assertThrows(
                 IllegalArgumentException.class,

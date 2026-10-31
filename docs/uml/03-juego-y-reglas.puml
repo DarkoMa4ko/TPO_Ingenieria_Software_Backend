@@ -111,6 +111,11 @@ package "chess.core.standard" {
     + format(position : Position) : String
   }
 
+  class StandardPositionValidator {
+    + {static} validate(position : Position) : void
+    - {static} requireExactlyOneKing(position : Position, color : Color) : void
+  }
+
   class StandardChess {
     + {static} START_FEN : String
     + {static} fen() : Fen
@@ -158,8 +163,6 @@ GameListener ..> GameResult
 
 IllegalMoveException --|> RuntimeException
 
-LegalMoveGenerator ..> Position
-
 StandardPieces ..> PieceType
 StandardPieces ..> SlidingMovement
 StandardPieces ..> LeapingMovement
@@ -173,7 +176,11 @@ Fen --> PieceType
 Fen --> CastlingSpec
 Fen ..> StandardPieces
 
+StandardPositionValidator ..> Position : valida
+StandardPositionValidator ..> StandardPieces : cuenta KING
+
 StandardChess --> Fen
+StandardChess ..> StandardPositionValidator : valida
 StandardChess ..> Game : arma / restaura
 StandardChess ..> LegalMoveGenerator
 StandardChess ..> Checkmate

@@ -12,37 +12,91 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 
-/**
- * Generador estándar: pide a cada pieza del jugador en turno que genere sus movimientos
- * (cada una con su {@code MovementRule}) y descarta los que dejan al propio rey en jaque.
- *
- * <p>El filtro de jaque se hace "jugando" el movimiento sobre una posición inmutable y
- * preguntando si el rey quedó atacado. No hace falta deshacer nada.
- */
 public final class LegalMoveGenerator implements MoveGenerator {
 
     @Override
     public List<Move> pseudoLegalMoves(Position position) {
-        Color mover = position.sideToMove();
-        Set<Move> moves = new LinkedHashSet<>(); // deduplica si dos reglas de una pieza coinciden
+        Color mover =
+                position.sideToMove();
+
+        Set<Move> moves =
+                new LinkedHashSet<>();
+
         for (PieceType type : position.pieceTypes()) {
-            Bitboard pieces = position.pieces(mover, type);
-            for (Square from : position.geometry().squares(pieces)) {
-                type.movement().generate(position, from, mover, moves::add);
+            Bitboard pieces =
+                    position.pieces(
+                            mover,
+                            type
+                    );
+
+            for (Square from
+                    : position.geometry().squares(pieces)) {
+
+                type.movement().generate(
+                        position,
+                        from,
+                        mover,
+                        moves::add
+                );
             }
         }
+
         return List.copyOf(moves);
     }
 
     @Override
     public List<Move> legalMoves(Position position) {
-        Color mover = position.sideToMove();
-        List<Move> legal = new ArrayList<>();
-        for (Move move : pseudoLegalMoves(position)) {
-            if (!position.play(move).isInCheck(mover)) {
+        Color mover =
+                position.sideToMove();
+
+        List<Move> legal =
+                new ArrayList<>();
+
+        for (Move move
+                : pseudoLegalMoves(position)) {
+
+            /*
+             * En ajedrez el rey nunca se captura.
+             *
+             * El jaque mate termina la partida cuando el rey queda
+             * amenazado y no existen respuestas legales.
+             */
+            if (capturesRoyalPiece(
+                    position,
+                    move
+            )) {
+                continue;
+            }
+
+            Position resulting =
+                    position.play(move);
+
+            if (!resulting.isInCheck(mover)) {
                 legal.add(move);
             }
         }
+
         return List.copyOf(legal);
+    }
+
+    /**
+     * Indica si el movimiento terminaría capturando una pieza
+     * marcada como royal.
+     *
+     * <p>No se comprueba específicamente KING para mantener al
+     * generador independiente de StandardPieces y permitir otras
+     * configuraciones del motor.
+     */
+    private static boolean capturesRoyalPiece(
+            Position position,
+            Move move
+    ) {
+        return position.pieceAt(
+                        move.to()
+                )
+                .map(piece ->
+                        piece.type().royal()
+                )
+                .orElse(false);
     }
 }
